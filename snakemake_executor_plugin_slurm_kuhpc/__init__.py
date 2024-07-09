@@ -43,7 +43,7 @@ from snakemake_interface_executor_plugins.jobs import (
     JobExecutorInterface,
 )
 from snakemake_interface_common.exceptions import WorkflowError  # noqa
-from snakemake_executor_plugin_slurm_jobstep import get_cpus_per_task
+# from snakemake_executor_plugin_slurm_jobstep import get_cpus_per_task
 
 
 # # Optional:
