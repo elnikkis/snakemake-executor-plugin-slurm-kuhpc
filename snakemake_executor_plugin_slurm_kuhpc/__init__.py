@@ -32,12 +32,12 @@ from io import StringIO
 from datetime import datetime, timedelta
 
 # from dataclasses import dataclass, field
-from typing import List, Generator, Optional
+from typing import List, Generator
 import uuid
 from snakemake_interface_executor_plugins.executors.base import SubmittedJobInfo
 from snakemake_interface_executor_plugins.executors.remote import RemoteExecutor
 from snakemake_interface_executor_plugins.settings import (
-    ExecutorSettingsBase,
+    # ExecutorSettingsBase,
     CommonSettings,
 )
 from snakemake_interface_executor_plugins.jobs import (
@@ -48,6 +48,7 @@ from snakemake_interface_common.exceptions import WorkflowError  # noqa
 # from snakemake_executor_plugin_slurm_jobstep import get_cpus_per_task
 
 
+# from typing import Optional
 # # Optional:
 # # Define additional settings for your executor.
 # # They will occur in the Snakemake CLI as --<executor-name>-<param-name>
@@ -66,7 +67,7 @@ from snakemake_interface_common.exceptions import WorkflowError  # noqa
 #             # This mechanism should only be used for passwords and usernames.
 #             # For other items, we rather recommend to let people use a profile
 #             # for setting defaults
-#             # (https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles).
+#             # (https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles). # noqa: E501
 #             "env_var": False,
 #             # Optionally specify a function that parses the value given by the user.
 #             # This is useful to create complex types from the user input.
