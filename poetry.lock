@@ -1193,6 +1193,21 @@ pep = ["eido", "peppy"]
 reports = ["pygments"]
 
 [[package]]
+name = "snakemake-executor-plugin-slurm-jobstep"
+version = "0.2.1"
+description = "A Snakemake executor plugin for running srun jobs inside of SLURM jobs (meant for internal use by snakemake-executor-plugin-slurm)"
+optional = false
+python-versions = "<4.0,>=3.11"
+files = [
+    {file = "snakemake_executor_plugin_slurm_jobstep-0.2.1-py3-none-any.whl", hash = "sha256:097a51c8d2d1d40bb5aa4a845bb8c75ca03113d7197c67f047640319661725b3"},
+    {file = "snakemake_executor_plugin_slurm_jobstep-0.2.1.tar.gz", hash = "sha256:58894d52b5998a34fa6f60ec511ff0bfde4a9ec96714bcaa3cd2f46cf8a33859"},
+]
+
+[package.dependencies]
+snakemake-interface-common = ">=1.13.0,<2.0.0"
+snakemake-interface-executor-plugins = ">=9.0.0,<10.0.0"
+
+[[package]]
 name = "snakemake-interface-common"
 version = "1.17.2"
 description = "Common functions and classes for Snakemake and its plugins"
@@ -1433,4 +1448,4 @@ pyyaml = ">=6.0,<7.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "91d78a89490f9459e4297e7f791179d60fba47662762284648a25d33b5cf3294"
+content-hash = "19949cb2b616587bc594232952b470b42e80b9f73cc2c70cd383bc8f13cdcf42"

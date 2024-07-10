@@ -15,6 +15,7 @@ documentation = "https://snakemake.github.io/snakemake-plugin-catalog/plugins/ex
 python = "^3.11"
 snakemake-interface-common = "^1.17.2"
 snakemake-interface-executor-plugins = "^9.2.0"
+snakemake-executor-plugin-slurm-jobstep = "^0.2.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.4.2"
