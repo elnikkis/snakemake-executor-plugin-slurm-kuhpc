@@ -1,4 +1,4 @@
-'''
+"""
 MIT License
 
 Copyright (c) 2023 Snakemake Community
@@ -21,7 +21,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-'''
+"""
 
 import os
 import re
@@ -30,6 +30,7 @@ import time
 import subprocess
 from io import StringIO
 from datetime import datetime, timedelta
+
 # from dataclasses import dataclass, field
 from typing import List, Generator, Optional
 import uuid
@@ -43,6 +44,7 @@ from snakemake_interface_executor_plugins.jobs import (
     JobExecutorInterface,
 )
 from snakemake_interface_common.exceptions import WorkflowError  # noqa
+
 # from snakemake_executor_plugin_slurm_jobstep import get_cpus_per_task
 
 
@@ -150,7 +152,7 @@ class Executor(RemoteExecutor):
                 time.sleep(5)
         done = True
 
-    #TODO これいる？
+    # TODO これいる？
     def additional_general_args(self):
         return "--executor slurm-jobstep --jobs 1"
 
@@ -215,30 +217,30 @@ class Executor(RemoteExecutor):
 
         # Prepare resource requirements in Kyodai style
         # m: プロセスあたりのメモリ量
-        if job.resources.get('mem_mb'):
-            mem_per_proc = f'{job.resources.mem_mb}M'
+        if job.resources.get("mem_mb"):
+            mem_per_proc = f"{job.resources.mem_mb}M"
         else:
             mem_per_proc = None
 
         # p: プロセス数（MPIプロセス数）
-        n_procs = job.resources.get('tasks', 1)
+        n_procs = job.resources.get("tasks", 1)
 
         # t: プロセスあたりのスレッド数（プロセスごとのOpenMPスレッド数）
         # c: プロセスあたりのコア数
-        cpus_per_task = job.resources.get('threads', 1)
+        cpus_per_task = job.resources.get("threads", 1)
 
         # g: GPU数
-        ngpus = job.resources.get('gpus', 0)
+        ngpus = job.resources.get("gpus", 0)
 
         if ngpus > 0:
             # g=1とした場合は、1GPUの確保と同時に、p=1:c=16:m=128000M と同様のパラメータが自動的に設定されます。
-            # g=2とした場合は、2GPUの確保と同時に、p=2:c=16:m=128000M と同様のパラメータが自動的に設定されます。 
+            # g=2とした場合は、2GPUの確保と同時に、p=2:c=16:m=128000M と同様のパラメータが自動的に設定されます。
             # ref: https://web.kudpc.kyoto-u.ac.jp/manual/ja/run/resource
-            call += f' --rsc g={ngpus}'
+            call += f" --rsc g={ngpus}"
         else:
-            call += f' --rsc p={n_procs}:t={cpus_per_task}:c={cpus_per_task}'
+            call += f" --rsc p={n_procs}:t={cpus_per_task}:c={cpus_per_task}"
             if mem_per_proc:
-                call += f':m={mem_per_proc}'
+                call += f":m={mem_per_proc}"
 
         if job.resources.get("slurm_extra"):
             self.check_slurm_extra(job)
@@ -607,4 +609,3 @@ class Executor(RemoteExecutor):
                 "Please consult the documentation if you are unsure how to "
                 "query the status of your jobs."
             )
-
