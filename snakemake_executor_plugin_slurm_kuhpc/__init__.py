@@ -194,10 +194,10 @@ class Executor(RemoteExecutor):
             comment_str = f"rule_{job.name}"
         else:
             comment_str = f"rule_{job.name}_wildcards_{wildcard_str}"
-        jobname = f'{job.name}-{self.run_uuid}'
+        self.jobname = f'{job.name}-{self.run_uuid}'
         call = (
             # f"sbatch --job-name {self.run_uuid} --output {slurm_logfile} --export=ALL "
-            f"sbatch --job-name '{jobname}' --output {slurm_logfile} --export=ALL "
+            f"sbatch --job-name '{self.jobname}' --output {slurm_logfile} --export=ALL "
             f"--comment {comment_str}"
         )
 
@@ -348,10 +348,10 @@ class Executor(RemoteExecutor):
                     # -X: only show main job, no substeps
                     f"sacct -X --parsable2 --noheader --format=JobIdRaw,State "
                     f"--starttime {sacct_starttime} "
-                    f"--endtime now --name {self.run_uuid}"
+                    f"--endtime now --name {self.jobname}"
                 )
                 if status_of_jobs is None and sacct_query_duration is None:
-                    self.logger.debug(f"could not check status of job {self.run_uuid}")
+                    self.logger.debug(f"could not check status of job {self.jobname}")
                     continue
                 sacct_query_durations.append(sacct_query_duration)
                 self.logger.debug(f"status_of_jobs after sacct is: {status_of_jobs}")
