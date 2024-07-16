@@ -242,8 +242,8 @@ class Executor(RemoteExecutor):
             call += f" --rsc g={ngpus}"
         else:
             call += f" --rsc p={n_procs}:t={cpus_per_task}:c={cpus_per_task}"
-            if mem_per_proc:
-                call += f":m={mem_per_proc}"
+        if mem_per_proc:
+            call += f":m={mem_per_proc}"
 
         if job.resources.get("slurm_extra"):
             self.check_slurm_extra(job)
