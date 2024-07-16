@@ -214,10 +214,6 @@ class Executor(RemoteExecutor):
                 "default via --default-resources."
             )
 
-        # constraintに対応しているかは未確認
-        if job.resources.get("constraint"):
-            call += f" -C {job.resources.constraint}"
-
         # Prepare resource requirements in Kyodai style
         # m: プロセスあたりのメモリ量
         if job.resources.get("mem_mb"):
