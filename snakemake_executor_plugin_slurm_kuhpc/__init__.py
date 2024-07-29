@@ -194,10 +194,10 @@ class Executor(RemoteExecutor):
             comment_str = f"rule_{job.name}"
         else:
             comment_str = f"rule_{job.name}_wildcards_{wildcard_str}"
-        self.jobname = f'{job.name}-{self.run_uuid}'
+        # self.jobname = f'{job.name}-{self.run_uuid}'
         call = (
             # f"sbatch --job-name {self.run_uuid} --output {slurm_logfile} --export=ALL "
-            f"sbatch --job-name '{self.jobname}' --output {slurm_logfile} --export=ALL "
+            f"sbatch --job-name '{self.run_uuid}' --output {slurm_logfile} --export=ALL "
             f"--comment {comment_str}"
         )
 
@@ -226,7 +226,8 @@ class Executor(RemoteExecutor):
 
         # t: プロセスあたりのスレッド数（プロセスごとのOpenMPスレッド数）
         # c: プロセスあたりのコア数
-        cpus_per_task = job.resources.get("threads", 1)
+        # cpus_per_task = job.resources.get("threads", 1)
+        cpus_per_task = job.threads
 
         # g: GPU数
         ngpus = job.resources.get("gpus", 0)
@@ -238,8 +239,8 @@ class Executor(RemoteExecutor):
             call += f" --rsc g={ngpus}"
         else:
             call += f" --rsc p={n_procs}:t={cpus_per_task}:c={cpus_per_task}"
-        if mem_per_proc:
-            call += f":m={mem_per_proc}"
+            if mem_per_proc:
+                call += f":m={mem_per_proc}"
 
         if job.resources.get("slurm_extra"):
             self.check_slurm_extra(job)
@@ -344,10 +345,10 @@ class Executor(RemoteExecutor):
                     # -X: only show main job, no substeps
                     f"sacct -X --parsable2 --noheader --format=JobIdRaw,State "
                     f"--starttime {sacct_starttime} "
-                    f"--endtime now --name {self.jobname}"
+                    f"--endtime now --name {self.run_uuid}"
                 )
                 if status_of_jobs is None and sacct_query_duration is None:
-                    self.logger.debug(f"could not check status of job {self.jobname}")
+                    self.logger.debug(f"could not check status of job {self.run_uuid}")
                     continue
                 sacct_query_durations.append(sacct_query_duration)
                 self.logger.debug(f"status_of_jobs after sacct is: {status_of_jobs}")
