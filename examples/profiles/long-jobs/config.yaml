@@ -1,0 +1,25 @@
+# 京都大学スーパーコンピュータ用の長時間ジョブプロファイル
+# 使用方法: snakemake --profile examples/profiles/long-jobs
+
+# Executorの指定
+executor: slurm-kuhpc
+
+# 並行ジョブ数（長時間ジョブなので少なめに設定）
+jobs: 5
+
+# デフォルトのリソース設定（長時間ジョブ用）
+# 注意: slurm_partition と slurm_account は自分の値に変更してください
+default-resources:
+  slurm_partition: "gr19999b"   # 自分のパーティション名に変更
+  slurm_account: "gr19999"      # 自分のアカウント名に変更
+  runtime: 10080                # デフォルトで7日間（分単位）
+  mem_mb: 8000                  # デフォルトで8GB
+
+# 再実行の設定
+rerun-incomplete: true
+
+# ログ出力レベル
+printshellcmds: true
+
+# 長時間ジョブ用の追加設定
+latency-wait: 60  # ファイルシステムの遅延を考慮して60秒待機

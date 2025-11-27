@@ -1,0 +1,86 @@
+# OpenMP並列ジョブの例
+# 京都大学スーパーコンピュータでの実行を想定
+
+rule all:
+    input:
+        "output/openmp_result.txt"
+
+rule generate_input:
+    output:
+        "data/matrix.dat"
+    resources:
+        runtime=5,
+        mem_mb=1000
+    shell:
+        """
+        mkdir -p data
+        # ダミーの行列データを生成
+        for i in {{1..1000}}; do
+            echo "$RANDOM $RANDOM $RANDOM $RANDOM" >> {output}
+        done
+        """
+
+rule openmp_computation:
+    input:
+        "data/matrix.dat"
+    output:
+        "results/computed.dat"
+    threads: 8  # 8スレッドで並列実行
+    resources:
+        runtime=120,     # 2時間
+        mem_mb=16000     # 16GB
+    shell:
+        """
+        mkdir -p results
+
+        # OpenMPスレッド数を設定
+        export OMP_NUM_THREADS={threads}
+
+        # ここで実際のOpenMPプログラムを実行
+        # 例: ./my_openmp_program {input} {output}
+
+        # デモ用のダミー処理
+        echo "Processing with $OMP_NUM_THREADS threads" > {output}
+        wc -l {input} >> {output}
+        """
+
+rule openmp_heavy_computation:
+    input:
+        "data/matrix.dat"
+    output:
+        "results/heavy_computed.dat"
+    threads: 16  # 16スレッドで並列実行
+    resources:
+        runtime=360,     # 6時間
+        mem_mb=32000     # 32GB
+    shell:
+        """
+        mkdir -p results
+
+        export OMP_NUM_THREADS={threads}
+
+        # 大規模な計算の例
+        echo "Heavy computation with $OMP_NUM_THREADS threads" > {output}
+        cat {input} | sort -n >> {output}
+        """
+
+rule merge_results:
+    input:
+        normal="results/computed.dat",
+        heavy="results/heavy_computed.dat"
+    output:
+        "output/openmp_result.txt"
+    resources:
+        runtime=10,
+        mem_mb=2000
+    shell:
+        """
+        mkdir -p output
+        echo "=== OpenMP Results ===" > {output}
+        echo "" >> {output}
+        echo "Normal computation:" >> {output}
+        cat {input.normal} >> {output}
+        echo "" >> {output}
+        echo "Heavy computation:" >> {output}
+        cat {input.heavy} >> {output}
+        """

@@ -1,0 +1,23 @@
+# 京都大学スーパーコンピュータ（システムG）用のGPUプロファイル
+# 使用方法: snakemake --profile examples/profiles/gpu
+
+# Executorの指定
+executor: slurm-kuhpc
+
+# GPU並列ジョブ数（GPUは限られているため少なめに設定）
+jobs: 4
+
+# デフォルトのリソース設定（GPU用）
+# 注意: slurm_partition と slurm_account は自分の値に変更してください
+default-resources:
+  slurm_partition: "gg12345b"   # GPUパーティション名に変更
+  slurm_account: "gg12345"      # GPUアカウント名に変更
+  runtime: 2880                 # デフォルトで2日（分単位）
+  gpus: 1                       # デフォルトでGPU 1枚
+  mem_mb: 128000                # デフォルトで128GB
+
+# 再実行の設定
+rerun-incomplete: true
+
+# ログ出力レベル
+printshellcmds: true

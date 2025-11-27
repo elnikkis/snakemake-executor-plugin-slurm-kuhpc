@@ -1,0 +1,92 @@
+# MPIジョブの例
+# 京都大学スーパーコンピュータでの実行を想定
+
+rule all:
+    input:
+        "output/mpi_result.txt"
+
+rule prepare_simulation:
+    output:
+        "data/simulation_config.ini"
+    resources:
+        runtime=5,
+        mem_mb=1000
+    shell:
+        """
+        mkdir -p data
+        cat > {output} <<EOF
+[simulation]
+size = 1000
+iterations = 100
+output_interval = 10
+EOF
+        """
+
+rule mpi_simulation:
+    input:
+        "data/simulation_config.ini"
+    output:
+        "results/simulation_output.dat"
+    resources:
+        tasks=4,         # 4 MPIプロセス
+        threads=1,       # プロセスあたり1スレッド
+        runtime=180,     # 3時間
+        mem_mb=8000      # プロセスあたり8GB
+    shell:
+        """
+        mkdir -p results
+
+        # MPIプログラムを実行
+        # 例: mpirun -n {resources.tasks} ./my_mpi_program {input} {output}
+
+        # デモ用のダミー処理
+        echo "MPI simulation with {resources.tasks} processes" > {output}
+        echo "Config: $(cat {input})" >> {output}
+        """
+
+rule hybrid_mpi_openmp:
+    input:
+        "data/simulation_config.ini"
+    output:
+        "results/hybrid_output.dat"
+    threads: 4           # プロセスあたり4 OpenMPスレッド
+    resources:
+        tasks=2,         # 2 MPIプロセス
+        runtime=240,     # 4時間
+        mem_mb=16000     # プロセスあたり16GB
+    shell:
+        """
+        mkdir -p results
+
+        # ハイブリッド並列（MPI + OpenMP）の設定
+        export OMP_NUM_THREADS={threads}
+
+        # MPIプログラムを実行
+        # 例: mpirun -n {resources.tasks} ./my_hybrid_program {input} {output}
+
+        # デモ用のダミー処理
+        echo "Hybrid MPI+OpenMP simulation" > {output}
+        echo "MPI processes: {resources.tasks}" >> {output}
+        echo "OpenMP threads per process: $OMP_NUM_THREADS" >> {output}
+        """
+
+rule analyze_mpi_results:
+    input:
+        mpi="results/simulation_output.dat",
+        hybrid="results/hybrid_output.dat"
+    output:
+        "output/mpi_result.txt"
+    resources:
+        runtime=30,
+        mem_mb=4000
+    shell:
+        """
+        mkdir -p output
+        echo "=== MPI Simulation Results ===" > {output}
+        echo "" >> {output}
+        echo "Standard MPI:" >> {output}
+        cat {input.mpi} >> {output}
+        echo "" >> {output}
+        echo "Hybrid MPI+OpenMP:" >> {output}
+        cat {input.hybrid} >> {output}
+        """

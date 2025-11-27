@@ -1,0 +1,63 @@
+# 基本的なSnakemakeワークフローの例
+# 京都大学スーパーコンピュータでの実行を想定
+
+rule all:
+    input:
+        "output/final_result.txt"
+
+rule create_data:
+    output:
+        "data/input.txt"
+    resources:
+        runtime=10,      # 10分
+        mem_mb=1000      # 1GB
+    shell:
+        """
+        mkdir -p data
+        echo "This is input data" > {output}
+        """
+
+rule process_data:
+    input:
+        "data/input.txt"
+    output:
+        "results/processed.txt"
+    resources:
+        runtime=30,      # 30分
+        mem_mb=2000      # 2GB
+    shell:
+        """
+        mkdir -p results
+        cat {input} | tr '[:lower:]' '[:upper:]' > {output}
+        """
+
+rule analyze_data:
+    input:
+        "results/processed.txt"
+    output:
+        "results/analyzed.txt"
+    resources:
+        runtime=60,      # 1時間
+        mem_mb=4000,     # 4GB
+        threads=2        # 2コア
+    shell:
+        """
+        echo "Analysis with {threads} threads" > {output}
+        cat {input} >> {output}
+        """
+
+rule summarize:
+    input:
+        "results/analyzed.txt"
+    output:
+        "output/final_result.txt"
+    resources:
+        runtime=15,      # 15分
+        mem_mb=1000      # 1GB
+    shell:
+        """
+        mkdir -p output
+        echo "=== Final Summary ===" > {output}
+        cat {input} >> {output}
+        date >> {output}
+        """

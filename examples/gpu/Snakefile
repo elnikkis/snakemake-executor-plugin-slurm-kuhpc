@@ -1,0 +1,121 @@
+# GPUジョブの例
+# 京都大学スーパーコンピュータ（システムG）での実行を想定
+
+rule all:
+    input:
+        "output/gpu_result.txt"
+
+rule prepare_training_data:
+    output:
+        "data/training_data.txt"
+    resources:
+        runtime=10,
+        mem_mb=2000
+    shell:
+        """
+        mkdir -p data
+        # ダミーのトレーニングデータを生成
+        for i in {{1..10000}}; do
+            echo "$RANDOM $RANDOM $RANDOM" >> {output}
+        done
+        """
+
+rule gpu_training:
+    input:
+        "data/training_data.txt"
+    output:
+        "models/trained_model.pt"
+    resources:
+        gpus=1,          # GPU 1枚を使用
+        runtime=1440,    # 24時間
+        mem_mb=128000    # 128GB（自動設定されるが明示も可能）
+    shell:
+        """
+        mkdir -p models
+
+        # GPUデバイスの設定
+        export CUDA_VISIBLE_DEVICES=0
+
+        # GPUを使用するプログラムを実行
+        # 例: python train_model.py --input {input} --output {output}
+
+        # デモ用のダミー処理
+        echo "GPU training completed" > {output}
+        echo "Input: {input}" >> {output}
+        echo "GPU count: {resources.gpus}" >> {output}
+        """
+
+rule multi_gpu_training:
+    input:
+        "data/training_data.txt"
+    output:
+        "models/multi_gpu_model.pt"
+    resources:
+        gpus=2,          # GPU 2枚を使用
+        runtime=2880,    # 48時間
+        mem_mb=256000    # 256GB
+    shell:
+        """
+        mkdir -p models
+
+        # 複数GPUの設定
+        export CUDA_VISIBLE_DEVICES=0,1
+
+        # 複数GPUを使用するプログラムを実行
+        # 例: python train_model_ddp.py --input {input} --output {output} --gpus {resources.gpus}
+
+        # デモ用のダミー処理
+        echo "Multi-GPU training completed" > {output}
+        echo "Input: {input}" >> {output}
+        echo "GPU count: {resources.gpus}" >> {output}
+        """
+
+rule gpu_inference:
+    input:
+        model="models/trained_model.pt",
+        data="data/training_data.txt"
+    output:
+        "results/predictions.txt"
+    resources:
+        gpus=1,
+        runtime=60,      # 1時間
+        mem_mb=64000     # 64GB
+    shell:
+        """
+        mkdir -p results
+
+        export CUDA_VISIBLE_DEVICES=0
+
+        # GPU推論を実行
+        # 例: python inference.py --model {input.model} --data {input.data} --output {output}
+
+        # デモ用のダミー処理
+        echo "GPU inference completed" > {output}
+        echo "Model: {input.model}" >> {output}
+        wc -l {input.data} >> {output}
+        """
+
+rule summarize_gpu_results:
+    input:
+        single="models/trained_model.pt",
+        multi="models/multi_gpu_model.pt",
+        predictions="results/predictions.txt"
+    output:
+        "output/gpu_result.txt"
+    resources:
+        runtime=10,
+        mem_mb=2000
+    shell:
+        """
+        mkdir -p output
+        echo "=== GPU Computation Results ===" > {output}
+        echo "" >> {output}
+        echo "Single GPU model:" >> {output}
+        cat {input.single} >> {output}
+        echo "" >> {output}
+        echo "Multi-GPU model:" >> {output}
+        cat {input.multi} >> {output}
+        echo "" >> {output}
+        echo "Predictions:" >> {output}
+        cat {input.predictions} >> {output}
+        """

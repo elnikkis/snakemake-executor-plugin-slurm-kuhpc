@@ -1,0 +1,22 @@
+# 京都大学スーパーコンピュータ用の基本プロファイル
+# 使用方法: snakemake --profile examples/profiles/default
+
+# Executorの指定
+executor: slurm-kuhpc
+
+# 並行実行するジョブ数
+jobs: 10
+
+# デフォルトのリソース設定
+# 注意: slurm_partition と slurm_account は自分の値に変更してください
+default-resources:
+  slurm_partition: "gr19999b"   # 自分のパーティション名に変更
+  slurm_account: "gr19999"      # 自分のアカウント名に変更
+  runtime: 1440                 # デフォルトで1日（分単位）
+  mem_mb: 4000                  # デフォルトで4GB
+
+# 再実行の設定
+rerun-incomplete: true
+
+# ログ出力レベル
+printshellcmds: true
