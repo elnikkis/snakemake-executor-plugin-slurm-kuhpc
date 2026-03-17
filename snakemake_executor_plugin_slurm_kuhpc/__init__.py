@@ -51,7 +51,7 @@ class ExecutorSettings(ExecutorSettingsBase):
     logdir: Optional[str] = field(
         default=None,
         metadata={
-            "help": "Directory for SLURM log files (overrides default .snakemake/slurm_logs)",
+            "help": "Directory for SLURM log files (overrides .snakemake/slurm_logs)",
             "env_var": False,
             "required": False,
         },
@@ -59,7 +59,7 @@ class ExecutorSettings(ExecutorSettingsBase):
     keep_successful_logs: bool = field(
         default=False,
         metadata={
-            "help": "Keep log files of successfully completed jobs (default: delete them)",
+            "help": "Keep log files of successfully completed jobs (default: delete)",
             "env_var": False,
             "required": False,
         },
@@ -91,7 +91,7 @@ class ExecutorSettings(ExecutorSettingsBase):
     jobname_prefix: str = field(
         default="",
         metadata={
-            "help": "Prefix for SLURM job names (max 50 chars, alphanumeric/underscore/hyphen)",
+            "help": "Prefix for SLURM job names (max 50 chars, alphanumeric/hyphen)",
             "env_var": False,
             "required": False,
         },
@@ -115,7 +115,7 @@ class ExecutorSettings(ExecutorSettingsBase):
     pass_command_as_script: bool = field(
         default=False,
         metadata={
-            "help": "Pass command as stdin script instead of --wrap (useful for long command lines)",
+            "help": "Pass command as stdin script instead of --wrap",
             "env_var": False,
             "required": False,
         },
@@ -260,7 +260,8 @@ class Executor(RemoteExecutor):
             job_name = self.run_uuid
 
         call = (
-            f"sbatch --parsable --job-name '{job_name}' --output {slurm_logfile} --export=ALL "
+            f"sbatch --parsable --job-name '{job_name}' "
+            f"--output {slurm_logfile} --export=ALL "
             f"--comment {comment_str}"
         )
 
@@ -425,7 +426,7 @@ class Executor(RemoteExecutor):
         # https://github.com/Snakemake-Profiles/slurm
         for i in range(status_attempts):
             async with self.status_rate_limiter:
-                (status_of_jobs, sacct_query_duration) = await self.job_stati(
+                status_of_jobs, sacct_query_duration = await self.job_stati(
                     # -X: only show main job, no substeps
                     f"sacct -X --parsable2 --noheader --format=JobIdRaw,State "
                     f"--starttime {sacct_starttime} "

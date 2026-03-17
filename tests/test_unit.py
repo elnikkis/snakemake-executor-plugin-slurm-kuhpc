@@ -5,7 +5,7 @@ These tests run locally without a SLURM environment.
 
 import asyncio
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,10 +13,10 @@ import pytest
 from snakemake_executor_plugin_slurm_kuhpc import Executor, ExecutorSettings
 from snakemake_interface_common.exceptions import WorkflowError
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_executor_mock(**logger_kwargs):
     """Return a MagicMock that looks like an Executor instance."""
@@ -28,6 +28,7 @@ def _make_executor_mock(**logger_kwargs):
 # ---------------------------------------------------------------------------
 # 1. TestExecutorSettings
 # ---------------------------------------------------------------------------
+
 
 class TestExecutorSettings:
     def test_defaults(self):
@@ -72,6 +73,7 @@ class TestExecutorSettings:
 # 2. TestCheckSlurmExtra
 # ---------------------------------------------------------------------------
 
+
 class TestCheckSlurmExtra:
     def _call(self, slurm_extra: str):
         mock = _make_executor_mock()
@@ -102,6 +104,7 @@ class TestCheckSlurmExtra:
 # 3. TestDeleteLogfile
 # ---------------------------------------------------------------------------
 
+
 class TestDeleteLogfile:
     def test_existing_file_deleted(self, tmp_path):
         f = tmp_path / "job.log"
@@ -120,6 +123,7 @@ class TestDeleteLogfile:
 # 4. TestDeleteOldLogfiles
 # ---------------------------------------------------------------------------
 
+
 class TestDeleteOldLogfiles:
     def _setup_logs(self, base):
         """Create .snakemake/slurm_logs/ with two files at different ages."""
@@ -134,6 +138,7 @@ class TestDeleteOldLogfiles:
         # set mtime: 11 days ago (old) and 1 day ago (new)
         now = datetime.now().timestamp()
         import os
+
         os.utime(old_file, (now - 11 * 86400, now - 11 * 86400))
         os.utime(new_file, (now - 1 * 86400, now - 1 * 86400))
 
@@ -162,6 +167,7 @@ class TestDeleteOldLogfiles:
 # ---------------------------------------------------------------------------
 # 5. TestJobStati
 # ---------------------------------------------------------------------------
+
 
 class TestJobStati:
     def _run(self, stdout: str):
@@ -198,6 +204,7 @@ class TestJobStati:
 # 6. TestGetJobFailureReason
 # ---------------------------------------------------------------------------
 
+
 class TestGetJobFailureReason:
     def _call(self, stdout: str):
         mock = _make_executor_mock()
@@ -228,6 +235,7 @@ class TestGetJobFailureReason:
 # ---------------------------------------------------------------------------
 # 7. TestGetFailedNode
 # ---------------------------------------------------------------------------
+
 
 class TestGetFailedNode:
     def _call(self, stdout: str):

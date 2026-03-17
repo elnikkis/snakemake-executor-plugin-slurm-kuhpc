@@ -42,7 +42,7 @@ jobs:
         run: uv sync
 
       - name: Check code
-        run: uv run flake8
+        run: uv run flake8 snakemake_executor_plugin_slurm_kuhpc tests
 
   testing:
     runs-on: ubuntu-latest
