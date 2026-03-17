@@ -6,16 +6,22 @@ Snakemake executor plugin for the supercomputer systems at the Academic Center f
 
 ## インストール
 
-pipを使用してインストールできます(TODO)：
+uvを使用してインストールできます：
 
 ```bash
-pip install snakemake-executor-plugin-slurm-kuhpc
+uv add snakemake-executor-plugin-slurm-kuhpc
 ```
 
 または、Snakemakeと一緒にインストール：
 
 ```bash
-pip install snakemake snakemake-executor-plugin-slurm-kuhpc
+uv add snakemake snakemake-executor-plugin-slurm-kuhpc
+```
+
+pipを使う場合：
+
+```bash
+pip install snakemake-executor-plugin-slurm-kuhpc
 ```
 
 ## 基本的な使い方
