@@ -106,6 +106,20 @@ snakemake --profile profiles/kyoto-hpc
 - ログファイルの自動管理（成功ジョブのログ削除、古いログの自動削除）
 - ジョブ失敗時の原因・障害ノードの記録
 
+## テストの実行
+
+ユニットテスト（SLURM環境不要）：
+
+```bash
+uv run pytest tests/test_unit.py -v
+```
+
+全テストを実行する場合：
+
+```bash
+uv run pytest -v
+```
+
 ## さらに詳しい情報
 
 詳細なリソース指定方法や高度な使い方については、[docs/further.md](docs/further.md)を参照してください。
