@@ -108,17 +108,43 @@ snakemake --profile profiles/kyoto-hpc
 
 ## テストの実行
 
-ユニットテスト（SLURM環境不要）：
+### ユニットテスト（SLURM環境不要）
 
 ```bash
 uv run pytest tests/test_unit.py -v
 ```
 
-全テストを実行する場合：
+### 京大スパコン上での動作確認
+
+ヘッドノードにログインし、リポジトリをクローンしてプラグインをインストールします：
 
 ```bash
-uv run pytest -v
+git clone https://github.com/elnikkis/snakemake-executor-plugin-slurm-kuhpc.git
+cd snakemake-executor-plugin-slurm-kuhpc
+uv sync
 ```
+
+`examples/basic/` の Snakefile を使って動作確認します：
+
+```bash
+cd examples/basic
+uv run snakemake --executor slurm-kuhpc --jobs 4 \
+  --default-resources slurm_partition=gr19999b slurm_account=gr19999
+```
+
+ジョブの投入状況は `squeue -u $USER` で確認できます。
+
+#### デバッグ時のヒント
+
+ログファイルの自動削除を無効にすると、失敗・成功を問わずログが残るため原因調査がしやすくなります：
+
+```bash
+uv run snakemake --executor slurm-kuhpc --jobs 4 \
+  --default-resources slurm_partition=gr19999b slurm_account=gr19999 \
+  --slurm-kuhpc-delete-logfiles-older-than 0
+```
+
+ログは `.snakemake/slurm_logs/` に保存されます。
 
 ## さらに詳しい情報
 
