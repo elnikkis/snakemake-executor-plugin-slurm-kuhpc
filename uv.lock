@@ -1199,7 +1199,7 @@ wheels = [
 
 [[package]]
 name = "snakemake-executor-plugin-slurm-kuhpc"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "snakemake-executor-plugin-slurm-jobstep" },
@@ -1218,9 +1218,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "snakemake-executor-plugin-slurm-jobstep", specifier = ">=0.2.1,<1" },
-    { name = "snakemake-interface-common", specifier = ">=1.17.2,<2" },
-    { name = "snakemake-interface-executor-plugins", specifier = ">=9.2.0,<10" },
+    { name = "snakemake-executor-plugin-slurm-jobstep", specifier = ">=0.4.0,<1" },
+    { name = "snakemake-interface-common", specifier = ">=1.21.0,<2" },
+    { name = "snakemake-interface-executor-plugins", specifier = ">=9.3.9,<10" },
 ]
 
 [package.metadata.requires-dev]

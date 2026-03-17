@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "snakemake-executor-plugin-slurm-kuhpc"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,9 +12,9 @@ authors = [
     { name = "Shiori Hironaka", email = "noahluces@gmail.com" },
 ]
 dependencies = [
-    "snakemake-interface-common>=1.17.2,<2",
-    "snakemake-interface-executor-plugins>=9.2.0,<10",
-    "snakemake-executor-plugin-slurm-jobstep>=0.2.1,<1",
+    "snakemake-interface-common>=1.21.0,<2",
+    "snakemake-interface-executor-plugins>=9.3.9,<10",
+    "snakemake-executor-plugin-slurm-jobstep>=0.4.0,<1",
 ]
 
 [project.urls]

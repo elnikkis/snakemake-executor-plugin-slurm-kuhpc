@@ -31,13 +31,13 @@ import subprocess
 from io import StringIO
 from datetime import datetime, timedelta
 
-# from dataclasses import dataclass, field
-from typing import List, Generator
+from dataclasses import dataclass, field
+from typing import List, Generator, Optional
 import uuid
 from snakemake_interface_executor_plugins.executors.base import SubmittedJobInfo
 from snakemake_interface_executor_plugins.executors.remote import RemoteExecutor
 from snakemake_interface_executor_plugins.settings import (
-    # ExecutorSettingsBase,
+    ExecutorSettingsBase,
     CommonSettings,
 )
 from snakemake_interface_executor_plugins.jobs import (
@@ -45,40 +45,89 @@ from snakemake_interface_executor_plugins.jobs import (
 )
 from snakemake_interface_common.exceptions import WorkflowError  # noqa
 
-# from snakemake_executor_plugin_slurm_jobstep import get_cpus_per_task
 
-
-# from typing import Optional
-# # Optional:
-# # Define additional settings for your executor.
-# # They will occur in the Snakemake CLI as --<executor-name>-<param-name>
-# # Omit this class if you don't need any.
-# # Make sure that all defined fields are Optional and specify a default value
-# # of None or anything else that makes sense in your case.
-# @dataclass
-# class ExecutorSettings(ExecutorSettingsBase):
-#     myparam: Optional[int] = field(
-#         default=None,
-#         metadata={
-#             "help": "Some help text",
-#             # Optionally request that setting is also available for specification
-#             # via an environment variable. The variable will be named automatically as
-#             # SNAKEMAKE_<executor-name>_<param-name>, all upper case.
-#             # This mechanism should only be used for passwords and usernames.
-#             # For other items, we rather recommend to let people use a profile
-#             # for setting defaults
-#             # (https://snakemake.readthedocs.io/en/stable/executing/cli.html#profiles). # noqa: E501
-#             "env_var": False,
-#             # Optionally specify a function that parses the value given by the user.
-#             # This is useful to create complex types from the user input.
-#             "parse_func": ...,
-#             # If a parse_func is specified, you also have to specify an unparse_func
-#             # that converts the parsed value back to a string.
-#             "unparse_func": ...,
-#             # Optionally specify that setting is required when the executor is in use.
-#             "required": True,
-#         },
-#     )
+@dataclass
+class ExecutorSettings(ExecutorSettingsBase):
+    logdir: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "Directory for SLURM log files (overrides default .snakemake/slurm_logs)",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    keep_successful_logs: bool = field(
+        default=False,
+        metadata={
+            "help": "Keep log files of successfully completed jobs (default: delete them)",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    delete_logfiles_older_than: int = field(
+        default=10,
+        metadata={
+            "help": "Delete log files older than this many days (0 to disable)",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    requeue: bool = field(
+        default=False,
+        metadata={
+            "help": "Pass --requeue to sbatch to allow job requeuing on node failure",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    no_account: bool = field(
+        default=False,
+        metadata={
+            "help": "Skip passing account argument to sbatch",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    jobname_prefix: str = field(
+        default="",
+        metadata={
+            "help": "Prefix for SLURM job names (max 50 chars, alphanumeric/underscore/hyphen)",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    qos: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "SLURM QoS string to pass to sbatch",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    reservation: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": "SLURM reservation name to pass to sbatch",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    pass_command_as_script: bool = field(
+        default=False,
+        metadata={
+            "help": "Pass command as stdin script instead of --wrap (useful for long command lines)",
+            "env_var": False,
+            "required": False,
+        },
+    )
+    status_attempts: int = field(
+        default=5,
+        metadata={
+            "help": "Number of attempts to query job status via sacct before giving up",
+            "env_var": False,
+            "required": False,
+        },
+    )
 
 
 # Required:
@@ -120,6 +169,13 @@ class Executor(RemoteExecutor):
         self.logger.info(f"SLURM run ID: {self.run_uuid}")
         self._fallback_account_arg = None
         self._fallback_partition = None
+        self._failed_nodes: set = set()
+        self._preempted_warned: set = set()
+
+        # Clean up old log files if configured
+        settings = self.workflow.executor_settings
+        if settings.delete_logfiles_older_than > 0:
+            self._delete_old_logfiles(settings.delete_logfiles_older_than)
 
         # access workflow
         # self.workflow
@@ -167,6 +223,7 @@ class Executor(RemoteExecutor):
         # snakemake_interface_executor_plugins.executors.base.SubmittedJobInfo.
         # If required, make sure to pass the job's id to the job_info object, as keyword
         # argument 'external_job_id'.
+        settings = self.workflow.executor_settings
         group_or_rule = f"group_{job.name}" if job.is_group() else f"rule_{job.name}"
 
         try:
@@ -174,9 +231,11 @@ class Executor(RemoteExecutor):
         except AttributeError:
             wildcard_str = ""
 
-        slurm_logfile = os.path.abspath(
-            f".snakemake/slurm_logs/{group_or_rule}/{wildcard_str}/%j.log"
-        )
+        if settings.logdir:
+            log_base = os.path.abspath(settings.logdir)
+        else:
+            log_base = os.path.abspath(".snakemake/slurm_logs")
+        slurm_logfile = os.path.join(log_base, group_or_rule, wildcard_str, "%j.log")
         logdir = os.path.dirname(slurm_logfile)
         # this behavior has been fixed in slurm 23.02, but there might be plenty of
         # older versions around, hence we should rather be conservative here.
@@ -194,15 +253,32 @@ class Executor(RemoteExecutor):
             comment_str = f"rule_{job.name}"
         else:
             comment_str = f"rule_{job.name}_wildcards_{wildcard_str}"
-        # self.jobname = f'{job.name}-{self.run_uuid}'
+
+        if settings.jobname_prefix:
+            job_name = f"{settings.jobname_prefix}_{self.run_uuid}"
+        else:
+            job_name = self.run_uuid
+
         call = (
-            # f"sbatch --job-name {self.run_uuid} --output {slurm_logfile} --export=ALL "
-            f"sbatch --job-name '{self.run_uuid}' --output {slurm_logfile} --export=ALL "
+            f"sbatch --parsable --job-name '{job_name}' --output {slurm_logfile} --export=ALL "
             f"--comment {comment_str}"
         )
 
-        call += self.get_account_arg(job)
+        if not settings.no_account:
+            call += self.get_account_arg(job)
         call += self.get_partition_arg(job)
+
+        if settings.requeue:
+            call += " --requeue"
+
+        if settings.qos:
+            call += f" --qos={settings.qos}"
+
+        if settings.reservation:
+            call += f" --reservation={settings.reservation}"
+
+        if self._failed_nodes:
+            call += f" --exclude={','.join(self._failed_nodes)}"
 
         if job.resources.get("runtime"):
             call += f" -t {job.resources.runtime}"
@@ -226,7 +302,6 @@ class Executor(RemoteExecutor):
 
         # t: プロセスあたりのスレッド数（プロセスごとのOpenMPスレッド数）
         # c: プロセスあたりのコア数
-        # cpus_per_task = job.resources.get("threads", 1)
         cpus_per_task = job.threads
 
         # g: GPU数
@@ -252,20 +327,30 @@ class Executor(RemoteExecutor):
         # use short argument as this is the same in all slurm versions
         # (see https://github.com/snakemake/snakemake/issues/2014)
         call += f" -D {self.workflow.workdir_init}"
-        # and finally the job to execute with all the snakemake parameters
-        call += f' --wrap="{exec_job}"'
 
         self.logger.debug(f"sbatch call: {call}")
         try:
-            out = subprocess.check_output(
-                call, shell=True, text=True, stderr=subprocess.STDOUT
-            ).strip()
+            if settings.pass_command_as_script:
+                script = f"#!/bin/bash\n{exec_job}\n"
+                out = subprocess.check_output(
+                    call,
+                    input=script,
+                    shell=True,
+                    text=True,
+                    stderr=subprocess.STDOUT,
+                ).strip()
+            else:
+                call += f' --wrap="{exec_job}"'
+                out = subprocess.check_output(
+                    call, shell=True, text=True, stderr=subprocess.STDOUT
+                ).strip()
         except subprocess.CalledProcessError as e:
             raise WorkflowError(
                 f"SLURM job submission failed. The error message was {e.output}"
             )
 
-        slurm_jobid = out.split(" ")[-1]
+        # With --parsable, output is just the job ID (possibly "jobid;cluster")
+        slurm_jobid = out.split(";")[0].strip()
         slurm_logfile = slurm_logfile.replace("%j", slurm_jobid)
         self.logger.info(
             f"Job {job.jobid} has been submitted with SLURM jobid {slurm_jobid} "
@@ -308,7 +393,6 @@ class Executor(RemoteExecutor):
             "FAILED",
             "NODE_FAIL",
             "OUT_OF_MEMORY",
-            "PREEMPTED",
             "TIMEOUT",
             "ERROR",
         )
@@ -323,7 +407,7 @@ class Executor(RemoteExecutor):
 
         sacct_query_durations = []
 
-        status_attempts = 5
+        status_attempts = self.workflow.executor_settings.status_attempts
 
         active_jobs_ids = {job_info.external_jobid for job_info in active_jobs}
         active_jobs_seen_by_sacct = set()
@@ -398,22 +482,53 @@ class Executor(RemoteExecutor):
                     continue
                 status = status_of_jobs[j.external_jobid]
                 if status == "COMPLETED":
+                    if not self.workflow.executor_settings.keep_successful_logs:
+                        self._delete_logfile(j.aux["slurm_logfile"])
                     self.report_job_success(j)
                     any_finished = True
                     active_jobs_seen_by_sacct.remove(j.external_jobid)
                 elif status == "UNKNOWN":
                     # the job probably does not exist anymore, but 'sacct' did not work
                     # so we assume it is finished
+                    if not self.workflow.executor_settings.keep_successful_logs:
+                        self._delete_logfile(j.aux["slurm_logfile"])
                     self.report_job_success(j)
                     any_finished = True
                     active_jobs_seen_by_sacct.remove(j.external_jobid)
-                elif status in fail_stati:
+                elif status == "PREEMPTED":
+                    if j.external_jobid not in self._preempted_warned:
+                        self.logger.warning(
+                            f"SLURM-job '{j.external_jobid}' was preempted. "
+                            "It will be treated as still running and may be requeued."
+                        )
+                        self._preempted_warned.add(j.external_jobid)
+                    yield j
+                elif status == "NODE_FAIL":
+                    # Try to get the failed node and exclude it from future submissions
+                    failed_node = self._get_failed_node(j.external_jobid)
+                    if failed_node:
+                        self._failed_nodes.add(failed_node)
+                        self.logger.warning(
+                            f"SLURM-job '{j.external_jobid}' failed due to NODE_FAIL "
+                            f"on node '{failed_node}'. Node added to exclusion list."
+                        )
+                    reason = self._get_job_failure_reason(j.external_jobid)
                     msg = (
                         f"SLURM-job '{j.external_jobid}' failed, SLURM status is: "
-                        # message ends with '. ', because it is proceeded
-                        # with a new sentence
+                        f"'NODE_FAIL'. "
+                    )
+                    if reason:
+                        msg += f"Reason: {reason}. "
+                    self.report_job_error(j, msg=msg, aux_logs=[j.aux["slurm_logfile"]])
+                    active_jobs_seen_by_sacct.remove(j.external_jobid)
+                elif status in fail_stati:
+                    reason = self._get_job_failure_reason(j.external_jobid)
+                    msg = (
+                        f"SLURM-job '{j.external_jobid}' failed, SLURM status is: "
                         f"'{status}'. "
                     )
+                    if reason:
+                        msg += f"Reason: {reason}. "
                     self.report_job_error(j, msg=msg, aux_logs=[j.aux["slurm_logfile"]])
                     active_jobs_seen_by_sacct.remove(j.external_jobid)
                 else:  # still running?
@@ -609,3 +724,58 @@ class Executor(RemoteExecutor):
                 "Please consult the documentation if you are unsure how to "
                 "query the status of your jobs."
             )
+
+    def _delete_logfile(self, logfile: str):
+        """Delete a log file if it exists."""
+        try:
+            if os.path.exists(logfile):
+                os.remove(logfile)
+        except OSError as e:
+            self.logger.warning(f"Could not delete log file {logfile}: {e}")
+
+    def _delete_old_logfiles(self, older_than_days: int):
+        """Delete log files older than the specified number of days."""
+        log_base = os.path.abspath(".snakemake/slurm_logs")
+        if not os.path.isdir(log_base):
+            return
+        cutoff = datetime.now() - timedelta(days=older_than_days)
+        for dirpath, _dirnames, filenames in os.walk(log_base):
+            for fname in filenames:
+                fpath = os.path.join(dirpath, fname)
+                try:
+                    mtime = datetime.fromtimestamp(os.path.getmtime(fpath))
+                    if mtime < cutoff:
+                        os.remove(fpath)
+                        self.logger.debug(f"Deleted old log file: {fpath}")
+                except OSError as e:
+                    self.logger.warning(f"Could not delete old log file {fpath}: {e}")
+
+    def _get_job_failure_reason(self, jobid: str) -> Optional[str]:
+        """Query sacct for the failure reason of a job."""
+        try:
+            out = subprocess.check_output(
+                f"sacct -X --noheader --parsable2 --format=Reason --jobs={jobid}",
+                shell=True,
+                text=True,
+                stderr=subprocess.PIPE,
+            ).strip()
+            if out and out != "None":
+                return out
+        except subprocess.CalledProcessError:
+            pass
+        return None
+
+    def _get_failed_node(self, jobid: str) -> Optional[str]:
+        """Query sacct for the node a failed job was running on."""
+        try:
+            out = subprocess.check_output(
+                f"sacct -X --noheader --parsable2 --format=NodeList --jobs={jobid}",
+                shell=True,
+                text=True,
+                stderr=subprocess.PIPE,
+            ).strip()
+            if out and out not in ("", "None", "none assigned"):
+                return out
+        except subprocess.CalledProcessError:
+            pass
+        return None
